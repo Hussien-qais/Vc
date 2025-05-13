@@ -1,57 +1,59 @@
-function searchFiles() {
-    const query = document.getElementById("searchQuery").value.toLowerCase();
-    const searchInFiles = document.getElementById("searchInFiles").checked;
-    const searchInPDF = document.getElementById("searchInPDF").checked;
-    const searchInWord = document.getElementById("searchInWord").checked;
-    const resultsContainer = document.getElementById("resultsContainer");
+function startSearch() {
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
 
-    resultsContainer.innerHTML = ""; // Clear previous results
-
-    if (searchInFiles) {
-        searchInHtmlFiles(query, resultsContainer);
+    if (!query) {
+        container.innerHTML = '<p>يرجى إدخال كلمة للبحث.</p>';
+        return;
     }
 
-    if (searchInPDF) {
-        searchInPdfFiles(query, resultsContainer);
+    const files = [];
+    for (let year = 2019; year <= 2100; year++) {
+        files.push(`space/file${year}.html`);
     }
 
-    if (searchInWord) {
-        searchInWordFiles(query, resultsContainer);
-    }
-}
+    let found = false;
 
-function searchInHtmlFiles(query, container) {
-    const files = ["file2019.html", "file2020.html", "file2021.html", "file2022.html"]; // أضف ملفاتك هنا
-    let foundResults = false;
-
-    files.forEach((file) => {
+    files.forEach(file => {
         fetch(file)
-            .then(response => response.text())
-            .then(data => {
-                if (data.toLowerCase().includes(query)) {
-                    foundResults = true;
-                    const resultDiv = document.createElement("div");
-                    resultDiv.classList.add("result-item");
-                    resultDiv.innerHTML = `<p>تم العثور على نتيجة في الملف: ${file}</p>`;
-                    container.appendChild(resultDiv);
-                }
-            })
-            .catch(error => console.error('Error fetching file:', error));
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const rows = doc.querySelectorAll('table tr');
+
+                rows.forEach(row => {
+                    const rowText = row.innerText.toLowerCase();
+                    if (rowText.includes(query)) {
+                        found = true;
+                        const clonedRow = row.cloneNode(true);
+                        clonedRow.classList.add('highlight');
+
+                        const table = document.createElement('table');
+                        const caption = document.createElement('caption');
+                        caption.textContent = `من الملف: ${file}`;
+                        caption.style = "caption-side: top; font-weight: bold; padding: 5px;";
+                        table.appendChild(caption);
+                        table.appendChild(clonedRow);
+
+                        container.appendChild(table);
+                    }
+                });
+            });
     });
 
-    if (!foundResults) {
-        const noResults = document.createElement("div");
-        noResults.innerHTML = "<p>لا توجد نتائج للبحث.</p>";
-        container.appendChild(noResults);
-    }
+    setTimeout(() => {
+        if (!found) container.innerHTML = '<p>لم يتم العثور على نتائج.</p>';
+    }, 1000);
 }
 
-function searchInPdfFiles(query, container) {
-    // منطق البحث في ملفات PDF باستخدام مكتبة مثل pdf.js
-    // قم بكتابة الكود هنا للتعامل مع ملفات PDF
-}
-
-function searchInWordFiles(query, container) {
-    // منطق البحث في ملفات Word باستخدام مكتبة مثل mammoth.js
-    // قم بكتابة الكود هنا للتعامل مع ملفات Word
+function printResults() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html><head><title>نتائج البحث</title></head>
+        <body>${document.getElementById('resultsContainer').innerHTML}</body></html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
 }

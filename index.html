@@ -1,36 +1,26 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قاعدة بيانات اللجان</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>قاعدة بيانات اللجان</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
+    input, button { padding: 8px; margin: 5px; font-size: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    tr.highlight td { background-color: #fffbcc; }
+    .results { max-height: 400px; overflow: auto; border: 1px solid #ddd; padding: 10px; background: #fff; }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="logo-container">
-            <img src="logo.gif" alt="شعار العراق" class="logo">
-            <h1>قاعدة بيانات اللجان</h1>
-        </div>
-    </header>
 
-    <div class="search-container">
-        <div class="search-box">
-            <input type="text" id="searchQuery" placeholder="ابحث عن اللجنة..." />
-            <button onclick="searchFiles()">بحث</button>
-        </div>
-        <div class="search-options">
-            <label><input type="checkbox" id="searchInFiles" checked> البحث في ملفات اللجان</label><br>
-            <label><input type="checkbox" id="searchInPDF"> البحث في ملفات PDF</label><br>
-            <label><input type="checkbox" id="searchInWord"> البحث في ملفات Word</label><br>
-        </div>
-        <div id="resultsContainer"></div>
-    </div>
+<h2>قاعدة بيانات اللجان</h2>
+<input type="text" id="searchInput" placeholder="ادخل كلمة البحث..." />
+<button onclick="startSearch()">بحث</button>
+<button onclick="printResults()">طباعة</button>
 
-    <footer>
-        <p>حقوق الطبع والنشر © 2025 جميع الحقوق محفوظة.</p>
-    </footer>
+<div class="results" id="resultsContainer"></div>
 
-    <script src="search.js"></script>
+<script src="search.js"></script>
 </body>
 </html>

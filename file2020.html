@@ -5,94 +5,178 @@
   <title>بحث اللجان</title>
   <style>
     body {
-      background: #f8f9fa;
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
+      background: #f9f9f9;
+      padding: 30px;
+    }
+
+    .search-section {
       text-align: center;
+      margin-bottom: 20px;
     }
-    .search-container {
-      margin-top: 15vh;
+
+    .search-section input, .search-section select {
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 250px;
     }
-    .search-box {
-      width: 50%;
-      max-width: 600px;
-      padding: 15px 20px;
-      font-size: 18px;
-      border: 1px solid #dcdcdc;
-      border-radius: 30px;
-      box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
-      outline: none;
-      transition: box-shadow 0.2s;
-    }
-    .search-box:focus {
-      box-shadow: 0 1px 8px rgba(32, 33, 36, 0.4);
-    }
-    .results {
-      margin-top: 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .result-card {
-      width: 90%;
-      max-width: 800px;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      direction: rtl;
       background: white;
-      text-align: right;
-      padding: 15px 20px;
-      margin: 10px 0;
-      border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .result-card h3 {
-      margin: 0 0 5px;
-      font-size: 18px;
-      color: #1a0dab;
-    }
-    .result-card p {
-      margin: 0;
-      color: #4d5156;
+
+    th, td {
+      padding: 12px 10px;
+      border: 1px solid #ddd;
       font-size: 14px;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #e9ecef;
+    }
+
+    .تحقيقية {
+      background-color: #f8d7da;
+    }
+
+    .تدقيقية {
+      background-color: #d1ecf1;
+    }
+
+    .أخرى {
+      background-color: #fff3cd;
+    }
+
+    caption {
+      font-size: 20px;
+      font-weight: bold;
+      padding: 10px;
+    }
+
+    .no-results {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 18px;
+      color: #888;
     }
   </style>
 </head>
 <body>
 
-  <div class="search-container">
-    <input type="text" id="searchInput" class="search-box" placeholder="ابحث عن موضوع أو عضو أو توصية..." onkeyup="searchData()">
+  <div class="search-section">
+    <input type="text" id="searchInput" placeholder="ابحث عن موضوع أو عضو..." onkeyup="searchData()">
+    <select id="yearFilter" onchange="searchData()">
+      <option value="">كل السنوات</option>
+    </select>
+    <select id="typeFilter" onchange="searchData()">
+      <option value="">كل الأنواع</option>
+    </select>
   </div>
 
-  <div class="results" id="results"></div>
+  <div id="results"></div>
 
   <script>
-    const allData = JSON.parse(localStorage.getItem("committeeData")) || [];
+    const data = JSON.parse(localStorage.getItem("committeeData")) || [];
+
+    function populateFilters() {
+      const years = [...new Set(data.map(item => item["السنة"]).filter(Boolean))].sort();
+      const types = [...new Set(data.map(item => item["نوع اللجنة"]).filter(Boolean))].sort();
+
+      const yearSelect = document.getElementById("yearFilter");
+      years.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+        yearSelect.appendChild(opt);
+      });
+
+      const typeSelect = document.getElementById("typeFilter");
+      types.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        typeSelect.appendChild(opt);
+      });
+    }
+
+    function getRowClass(type) {
+      if (!type) return "أخرى";
+      if (type.includes("تحقيقية")) return "تحقيقية";
+      if (type.includes("تدقيقية")) return "تدقيقية";
+      return "أخرى";
+    }
 
     function searchData() {
       const keyword = document.getElementById("searchInput").value.toLowerCase();
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = "";
+      const year = document.getElementById("yearFilter").value;
+      const type = document.getElementById("typeFilter").value;
+      const results = document.getElementById("results");
+      results.innerHTML = "";
 
-      const filtered = allData.filter(row => {
-        const rowText = Object.values(row).join(" ").toLowerCase();
-        return rowText.includes(keyword);
+      const filtered = data.filter(row => {
+        const text = Object.values(row).join(" ").toLowerCase();
+        const matchesKeyword = !keyword || text.includes(keyword);
+        const matchesYear = !year || row["السنة"] === year;
+        const matchesType = !type || row["نوع اللجنة"] === type;
+        return matchesKeyword && matchesYear && matchesType;
       });
 
-      if (keyword.trim() === "") return;
+      if (filtered.length === 0) {
+        results.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة.</div>';
+        return;
+      }
 
-      filtered.forEach((item, index) => {
-        const card = document.createElement("div");
-        card.className = "result-card";
+      let html = `
+        <table>
+          <caption>نتائج البحث</caption>
+          <thead>
+            <tr>
+              <th>نوع اللجنة</th>
+              <th>موضوع اللجنة</th>
+              <th>الأمر الجامعي للتشكيل</th>
+              <th>الأعضاء</th>
+              <th>الأمر الجامعي للتوصيات</th>
+              <th>التوصيات</th>
+              <th>حالة اللجنة</th>
+              <th>العقوبات</th>
+              <th>مكان الحفظ</th>
+              <th>السنة</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
 
-        card.innerHTML = `
-          <h3>نوع اللجنة: ${item["نوع اللجنة"] || "غير معروف"}</h3>
-          <p><strong>الموضوع:</strong> ${item["موضوع اللجنة"]}</p>
-          <p><strong>الأعضاء:</strong> ${item["الأعضاء"]}</p>
-          <p><strong>السنة:</strong> ${item["السنة"]} | <strong>الحالة:</strong> ${item["حالة اللجنة"]}</p>
+      filtered.forEach(row => {
+        const rowClass = getRowClass(row["نوع اللجنة"]);
+        html += `
+          <tr class="${rowClass}">
+            <td>${row["نوع اللجنة"] || ""}</td>
+            <td>${row["موضوع اللجنة"] || ""}</td>
+            <td>${row["الأمر الجامعي الخاص بالتشكيل"] || ""}</td>
+            <td>${row["الأعضاء"] || ""}</td>
+            <td>${row["الأمر الجامعي الخاص بالتوصيات"] || ""}</td>
+            <td>${row["التوصيات"] || ""}</td>
+            <td>${row["حالة اللجنة"] || ""}</td>
+            <td>${row["العقوبات"] || ""}</td>
+            <td>${row["مكان الحفظ"] || ""}</td>
+            <td>${row["السنة"] || ""}</td>
+          </tr>
         `;
-
-        resultsDiv.appendChild(card);
       });
+
+      html += "</tbody></table>";
+      results.innerHTML = html;
     }
+
+    populateFilters();
   </script>
 
 </body>

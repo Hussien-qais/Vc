@@ -10,12 +10,24 @@
       padding: 30px;
     }
 
+    .logo-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo-section img {
+      max-width: 150px;
+      height: auto;
+    }
+
     .search-section {
       text-align: center;
       margin-bottom: 20px;
     }
 
-    .search-section input, .search-section select {
+    .search-section input,
+    .search-section select,
+    .search-section button {
       padding: 10px 15px;
       margin: 5px;
       font-size: 16px;
@@ -37,22 +49,27 @@
       border: 1px solid #ddd;
       font-size: 14px;
       vertical-align: top;
+      transition: width 0.3s ease;
     }
 
-    th {
-      background-color: #e9ecef;
+    th:nth-child(2), td:nth-child(2) {
+      width: 25%;
     }
 
-    .تحقيقية {
-      background-color: #f8d7da;
+    th:nth-child(3), td:nth-child(3) {
+      width: 120px;
     }
 
-    .تدقيقية {
-      background-color: #d1ecf1;
+    th:nth-child(4), td:nth-child(4) {
+      width: 28%;
     }
 
-    .أخرى {
-      background-color: #fff3cd;
+    th:nth-child(5), td:nth-child(5) {
+      width: 120px;
+    }
+
+    th:nth-child(6), td:nth-child(6) {
+      width: 40%;
     }
 
     caption {
@@ -61,15 +78,37 @@
       padding: 10px;
     }
 
+    .تحقيقية {
+      background-color: #f8d7da !important;
+    }
+
+    .تدقيقية {
+      background-color: #d1ecf1 !important;
+    }
+
+    .أخرى {
+      background-color: #fff3cd !important;
+    }
+
     .no-results {
       text-align: center;
       margin-top: 30px;
       font-size: 18px;
       color: #888;
     }
+
+    #counter {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
+
+  <div class="logo-section">
+    <img src="logo.gif" alt="شعار الموقع">
+  </div>
 
   <div class="search-section">
     <input type="text" id="searchInput" placeholder="ابحث عن موضوع أو عضو..." onkeyup="searchData()">
@@ -81,6 +120,7 @@
     </select>
   </div>
 
+  <div id="counter"></div>
   <div id="results"></div>
 
   <script>
@@ -107,7 +147,7 @@
       });
     }
 
-    function getRowClass(type) {
+    function getTypeClass(type) {
       if (!type) return "أخرى";
       if (type.includes("تحقيقية")) return "تحقيقية";
       if (type.includes("تدقيقية")) return "تدقيقية";
@@ -119,7 +159,13 @@
       const year = document.getElementById("yearFilter").value;
       const type = document.getElementById("typeFilter").value;
       const results = document.getElementById("results");
+      const counter = document.getElementById("counter");
       results.innerHTML = "";
+      counter.textContent = "";
+
+      if (!keyword && !year && !type) {
+        return;
+      }
 
       const filtered = data.filter(row => {
         const text = Object.values(row).join(" ").toLowerCase();
@@ -134,6 +180,8 @@
         return;
       }
 
+      counter.textContent = `عدد النتائج: ${filtered.length}`;
+
       let html = `
         <table>
           <caption>نتائج البحث</caption>
@@ -145,7 +193,6 @@
               <th>الأعضاء</th>
               <th>الأمر الجامعي للتوصيات</th>
               <th>التوصيات</th>
-              <th>حالة اللجنة</th>
               <th>العقوبات</th>
               <th>مكان الحفظ</th>
               <th>السنة</th>
@@ -155,16 +202,15 @@
       `;
 
       filtered.forEach(row => {
-        const rowClass = getRowClass(row["نوع اللجنة"]);
+        const typeClass = getTypeClass(row["نوع اللجنة"]);
         html += `
-          <tr class="${rowClass}">
-            <td>${row["نوع اللجنة"] || ""}</td>
+          <tr>
+            <td class="${typeClass}">${row["نوع اللجنة"] || ""}</td>
             <td>${row["موضوع اللجنة"] || ""}</td>
             <td>${row["الأمر الجامعي الخاص بالتشكيل"] || ""}</td>
             <td>${row["الأعضاء"] || ""}</td>
             <td>${row["الأمر الجامعي الخاص بالتوصيات"] || ""}</td>
             <td>${row["التوصيات"] || ""}</td>
-            <td>${row["حالة اللجنة"] || ""}</td>
             <td>${row["العقوبات"] || ""}</td>
             <td>${row["مكان الحفظ"] || ""}</td>
             <td>${row["السنة"] || ""}</td>

@@ -1,26 +1,601 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <header>
+    <img src="your-image.jpg" alt="شعار" class="header-logo">
+  </header>
   <title>قاعدة بيانات اللجان</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f9f9f9; }
-    input, button { padding: 8px; margin: 5px; font-size: 16px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    tr.highlight td { background-color: #fffbcc; }
-    .results { max-height: 400px; overflow: auto; border: 1px solid #ddd; padding: 10px; background: #fff; }
+    body {
+      font-family: "Arial", sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #007b9e;
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .controls input,
+    .controls select,
+    .controls button {
+      margin: 5px;
+      padding: 8px 15px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .controls input:focus,
+    .controls select:focus,
+    .controls button:focus {
+      outline: none;
+      border-color: #007b9e;
+    }
+    button {
+      background-color: #007b9e;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005f74;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 10px;
+      text-align: right;
+    }
+    th {
+      background-color: #007b9e;
+      color: white;
+      font-weight: bold;
+    }
+    td {
+      border: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .ta7qeqa { background-color: #ffe5e5; }
+    .tadqeqa { background-color: #e5f0ff; }
+    .daemeya { background-color: #fff9e5; }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header-logo {
+      max-width: 150px;
+      height: auto;
+    }
+  #loadingSpinner {
+  display: none;
+  text-align: center;
+  margin-top: 20px;
+}
+.loader {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #007b9e;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
   </style>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <body>
 
-<h2>قاعدة بيانات اللجان</h2>
-<input type="text" id="searchInput" placeholder="ادخل كلمة البحث..." />
-<button onclick="startSearch()">بحث</button>
-<button onclick="printResults()">طباعة</button>
+  <h1>قاعدة بيانات اللجان</h1>
 
-<div class="results" id="resultsContainer"></div>
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="ابحث عن كلمة عامة..." onkeyup="searchTable()">
+    <select id="filterType" onchange="searchTable()">
+      <option value="">كل أنواع اللجان</option>
+      <option value="تحقيقية">تحقيقية</option>
+      <option value="تدقيقية">تدقيقية</option>
+      <option value="فنية">فنية</option>
+    </select>
+    <input type="text" id="filterMember" placeholder="اكتب اسم العضو للفرز..." onkeyup="searchTable()">
+    <select id="filterYear" onchange="searchTable()">
+      <option value="">كل السنوات</option>
+      <option value="2021">2021</option>
+      <option value="2022">2022</option>
+      <option value="2023">2023</option>
+    </select>
+    <input type="text" id="filterTopic" placeholder="اكتب موضوع اللجنة للفرز..." onkeyup="searchTable()">
+    <select id="filterPunishment" onchange="searchTable()">
+      <option value="">الكل</option>
+      <option value="لفت نظر">لفت نظر</option>
+      <option value="انذار">انذار</option>
+      <option value="عزل">عزل</option>
+      <option value="فصل">فصل</option>
+      <option value="توبيخ">توبيخ</option>
+      <option value="قطع راتب">قطع راتب</option>
+    </select>
+    <button onclick="printTable()">طباعة</button>
+    <button onclick="exportToPDF()">تصدير PDF</button>
+    <button onclick="exportToWord()">تصدير Word</button>
+    <button onclick="addRow()">إضافة صف جديد</button>
+    <button onclick="enableEditing()">تعديل</button>
+    <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="importExcel()" />
+    <button onclick="manageFiles()">إدارة الملفات</button>
+<div id="importedFilesList" style="margin-top: 10px; display:none; text-align: right;"></div>
+    <div id="loadingSpinner"><div class="loader"></div><p>جاري تحميل الملف...</p></div>
+  </div>
 
-<script src="search.js"></script>
+  <table id="committeeTable">
+    <thead>
+      <tr>
+        <th>ت</th>
+        <th>نوع اللجنة</th>
+        <th>موضوع اللجنة</th>
+        <th>الأمر الجامعي الخاص بالتشكيل</th>
+        <th>الأعضاء</th>
+        <th>الأمر الجامعي الخاص بالتوصيات</th>
+        <th>التوصيات</th>
+        <th>حالة اللجنة</th>
+        <th>العقوبات</th>
+        <th>مكان الحفظ</th>
+        <th>السنة</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- بيانات اللجنة ستضاف هنا من localStorage -->
+    </tbody>
+  </table>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script>
+    // تحميل البيانات المخزنة من localStorage عند تحميل الصفحة
+    window.onload = function() {
+      const savedData = JSON.parse(localStorage.getItem('committeeData')) || [];
+      renderTable(savedData);
+    };
+
+    // وظيفة لعرض البيانات في الجدول
+    function renderTable(data) {
+      const tableBody = document.getElementById("committeeTable").querySelector("tbody");
+      tableBody.innerHTML = '';  // تنظيف الجدول قبل إضافة البيانات الجديدة
+      data.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        Object.values(row).forEach(value => {
+          const td = document.createElement('td');
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // إضافة صف جديد إلى قاعدة البيانات المحلية
+    function addRow() {
+      const newRow = {
+        "ت": document.querySelector("#committeeTable tbody").rows.length + 1,
+        "نوع اللجنة": prompt("أدخل نوع اللجنة:"),
+        "موضوع اللجنة": prompt("أدخل موضوع اللجنة:"),
+        "الأمر الجامعي الخاص بالتشكيل": prompt("أدخل الأمر الجامعي الخاص بالتشكيل:"),
+        "الأعضاء": prompt("أدخل الأعضاء:"),
+        "الأمر الجامعي الخاص بالتوصيات": prompt("أدخل الأمر الجامعي الخاص بالتوصيات:"),
+        "التوصيات": prompt("أدخل التوصيات:"),
+        "حالة اللجنة": prompt("أدخل حالة اللجنة:"),
+        "العقوبات": prompt("أدخل العقوبات:"),
+        "مكان الحفظ": prompt("أدخل مكان الحفظ:"),
+        "السنة": prompt("أدخل السنة:")
+      };
+
+      const savedData = JSON.parse(localStorage.getItem('committeeData')) || [];
+      savedData.push(newRow);
+      localStorage.setItem('committeeData', JSON.stringify(savedData));
+
+      renderTable(savedData);
+    }
+
+    // تصدير PDF
+    async function exportToPDF() {
+      document.querySelector("h1").style.display = "none";
+      document.querySelector(".controls").style.display = "none";
+
+      const canvas = await html2canvas(document.body, { scale: 2 });
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      const pdf = new jspdf.jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = 210;
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save("اللجان.pdf");
+
+      document.querySelector("h1").style.display = "block";
+      document.querySelector(".controls").style.display = "block";
+    }
+
+    // طباعة الجدول
+    function printTable() {
+      const controls = document.querySelector(".controls");
+      controls.style.display = "none";
+      window.print();
+      setTimeout(() => {
+        controls.style.display = "block";
+      }, 1000);
+    }
+
+    // تصدير إلى Word
+    function exportToWord() {
+      const tableHTML = document.getElementById("committeeTable").outerHTML;
+      const blob = new Blob(['\ufeff', tableHTML], { type: 'application/msword' });
+      saveAs(blob, 'اللجان.doc');
+    }
+
+    // البحث في الجدول
+    function searchTable() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const filterType = document.getElementById("filterType").value.toLowerCase();
+      const filterMember = document.getElementById("filterMember").value.toLowerCase();
+      const filterYear = document.getElementById("filterYear").value.toLowerCase();
+      const filterTopic = document.getElementById("filterTopic").value.toLowerCase();
+      const filterPunishment = document.getElementById("filterPunishment").value.toLowerCase();
+      const rows = document.querySelectorAll("#committeeTable tbody tr");
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const matchesSearch = row.innerText.toLowerCase().includes(input);
+        const matchesType = filterType === "" || cells[1].innerText.toLowerCase().includes(filterType);
+        const matchesMember = filterMember === "" || cells[4].innerText.toLowerCase().includes(filterMember);
+        const matchesYear = filterYear === "" || cells[10].innerText.toLowerCase().includes(filterYear);
+        const matchesTopic = filterTopic === "" || cells[2].innerText.toLowerCase().includes(filterTopic);
+        const matchesPunishment = filterPunishment === "" || cells[8].innerText.toLowerCase().includes(filterPunishment);
+
+        row.style.display = (matchesSearch && matchesType && matchesMember && matchesYear && matchesTopic && matchesPunishment) ? "" : "none";
+      });
+    }
+  let editingEnabled = false;
+const editPassword = "1234"; // يمكنك تغيير كلمة المرور هنا
+
+function enableEditing() {
+  if (editingEnabled) {
+    alert("التعديل مفعل بالفعل.");
+    return;
+  }
+
+  const enteredPassword = prompt("أدخل كلمة المرور لتفعيل التعديل:");
+  if (enteredPassword === editPassword) {
+    editingEnabled = true;
+    const cells = document.querySelectorAll("#committeeTable td");
+    cells.forEach(cell => {
+      cell.setAttribute("contenteditable", "true");
+      cell.style.backgroundColor = "#fff8dc"; // لون خفيف للتوضيح أن الخلية قابلة للتحرير
+      cell.addEventListener("blur", saveChanges); // إضافة حدث للحفظ عند الخروج من الخلية
+    });
+    alert("تم تفعيل وضع التعديل. يمكنك الآن تعديل البيانات مباشرة.");
+  } else {
+    alert("كلمة المرور غير صحيحة.");
+  }
+}
+
+// وظيفة لحفظ التعديلات في localStorage
+function saveChanges() {
+  const tableRows = document.querySelectorAll("#committeeTable tbody tr");
+  const updatedData = [];
+
+  tableRows.forEach(row => {
+    const rowData = {};
+    const cells = row.querySelectorAll("td");
+
+    rowData["ت"] = cells[0].textContent;
+    rowData["نوع اللجنة"] = cells[1].textContent;
+    rowData["موضوع اللجنة"] = cells[2].textContent;
+    rowData["الأمر الجامعي الخاص بالتشكيل"] = cells[3].textContent;
+    rowData["الأعضاء"] = cells[4].textContent;
+    rowData["الأمر الجامعي الخاص بالتوصيات"] = cells[5].textContent;
+    rowData["التوصيات"] = cells[6].textContent;
+    rowData["حالة اللجنة"] = cells[7].textContent;
+    rowData["العقوبات"] = cells[8].textContent;
+    rowData["مكان الحفظ"] = cells[9].textContent;
+    rowData["السنة"] = cells[10].textContent;
+
+    updatedData.push(rowData);
+  });
+
+  localStorage.setItem('committeeData', JSON.stringify(updatedData));
+}
+
+// تحميل البيانات المخزنة من localStorage عند تحميل الصفحة
+window.onload = function() {
+  const savedData = JSON.parse(localStorage.getItem('committeeData')) || [];
+  renderTable(savedData);
+};
+
+// وظيفة لعرض البيانات في الجدول
+function renderTable(data) {
+  const tableBody = document.getElementById("committeeTable").querySelector("tbody");
+  tableBody.innerHTML = '';  // تنظيف الجدول قبل إضافة البيانات الجديدة
+  data.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    Object.values(row).forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+    tableBody.appendChild(tr);
+  });
+}
+  function importExcel() {
+  const fileInput = document.getElementById("excelFile");
+  const file = fileInput.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    // تحويل البيانات إلى التنسيق المناسب للجدول
+    const formattedData = json.map((row, index) => ({
+      "ت": index + 1,
+      "نوع اللجنة": row["نوع اللجنة"] || "",
+      "موضوع اللجنة": row["موضوع اللجنة"] || "",
+      "الأمر الجامعي الخاص بالتشكيل": row["الأمر الجامعي الخاص بالتشكيل"] || "",
+      "الأعضاء": row["الأعضاء"] || "",
+      "الأمر الجامعي الخاص بالتوصيات": row["الأمر الجامعي الخاص بالتوصيات"] || "",
+      "التوصيات": row["التوصيات"] || "",
+      "حالة اللجنة": row["حالة اللجنة"] || "",
+      "العقوبات": row["العقوبات"] || "",
+      "مكان الحفظ": row["مكان الحفظ"] || "",
+      "السنة": row["السنة"] || ""
+    }));
+
+    // حفظ في localStorage وعرضها في الجدول
+    localStorage.setItem("committeeData", JSON.stringify(formattedData));
+    renderTable(formattedData);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+  function importExcel() {
+    const fileInput = document.getElementById('excelFile');
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      // تأكد من وجود أعمدة مطابقة لترتيب الجدول
+      const formattedData = jsonData.map((row, index) => ({
+        "ت": index + 1,
+        "نوع اللجنة": row["نوع اللجنة"] || '',
+        "موضوع اللجنة": row["موضوع اللجنة"] || '',
+        "الأمر الجامعي الخاص بالتشكيل": row["الأمر الجامعي الخاص بالتشكيل"] || '',
+        "الأعضاء": row["الأعضاء"] || '',
+        "الأمر الجامعي الخاص بالتوصيات": row["الأمر الجامعي الخاص بالتوصيات"] || '',
+        "التوصيات": row["التوصيات"] || '',
+        "حالة اللجنة": row["حالة اللجنة"] || '',
+        "العقوبات": row["العقوبات"] || '',
+        "مكان الحفظ": row["مكان الحفظ"] || '',
+        "السنة": row["السنة"] || ''
+      }));
+
+      localStorage.setItem('committeeData', JSON.stringify(formattedData));
+      renderTable(formattedData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+  function importExcel() {
+  const fileInput = document.getElementById("excelFile");
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    // حفظ باسم الملف
+    const allFiles = JSON.parse(localStorage.getItem("allFiles") || "[]");
+    const fileName = file.name;
+
+    localStorage.setItem(fileName, JSON.stringify(jsonData));
+    if (!allFiles.includes(fileName)) {
+      allFiles.push(fileName);
+      localStorage.setItem("allFiles", JSON.stringify(allFiles));
+    }
+
+    // دمج البيانات القديمة والجديدة
+    const existingData = JSON.parse(localStorage.getItem("committeeData")) || [];
+    const mergedData = [...existingData, ...jsonData];
+    localStorage.setItem("committeeData", JSON.stringify(mergedData));
+    renderTable(mergedData);
+  };
+  reader.readAsArrayBuffer(file);
+}
+  function manageFiles() {
+  const allFiles = JSON.parse(localStorage.getItem("allFiles") || "[]");
+  if (allFiles.length === 0) {
+    alert("لا توجد ملفات مستوردة.");
+    return;
+  }
+
+  let fileList = "اختر ملفًا لحذفه:\n";
+  allFiles.forEach((file, index) => {
+    fileList += `${index + 1}. ${file}\n`;
+  });
+
+  const choice = prompt(fileList + "\nاكتب رقم الملف للحذف:");
+  const fileIndex = parseInt(choice) - 1;
+
+  if (!isNaN(fileIndex) && allFiles[fileIndex]) {
+    const fileName = allFiles[fileIndex];
+    localStorage.removeItem(fileName);
+
+    // إزالة البيانات من committeeData المرتبطة بهذا الملف
+    const fileData = JSON.parse(localStorage.getItem(fileName) || "[]");
+    let allData = JSON.parse(localStorage.getItem("committeeData") || "[]");
+    allData = allData.filter(row => !fileData.some(fd =>
+      JSON.stringify(fd) === JSON.stringify(row)
+    ));
+    localStorage.setItem("committeeData", JSON.stringify(allData));
+    renderTable(allData);
+
+    // تحديث قائمة الملفات
+    allFiles.splice(fileIndex, 1);
+    localStorage.setItem("allFiles", JSON.stringify(allFiles));
+
+    alert(`تم حذف الملف "${fileName}" وجميع بياناته.`);
+  } else {
+    alert("اختيار غير صالح.");
+  }
+}
+  function importExcel() {
+  const fileInput = document.getElementById('excelFile');
+  const file = fileInput.files[0];
+
+  if (!file) return alert('يرجى اختيار ملف Excel أولا.');
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (jsonData.length === 0) {
+      alert('الملف لا يحتوي على بيانات!');
+      return;
+    }
+
+    // حفظ البيانات في localStorage
+    localStorage.setItem('committeeData', JSON.stringify(jsonData));
+
+    // إعادة عرض البيانات في الجدول
+    renderTable(jsonData);
+
+    // عرض أسماء الملفات المستوردة
+    document.getElementById("importedFilesList").style.display = "block";
+    document.getElementById("importedFilesList").innerText = `تم استيراد: ${file.name}`;
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+  function importExcel() {
+  const fileInput = document.getElementById('excelFile');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    // تحويل كل صف إلى الكائن المطلوب وتخزينه
+    const formattedData = jsonData.map((row, index) => ({
+      "ت": index + 1,
+      "نوع اللجنة": row["نوع اللجنة"] || "",
+      "موضوع اللجنة": row["موضوع اللجنة"] || "",
+      "الأمر الجامعي الخاص بالتشكيل": row["الأمر الجامعي الخاص بالتشكيل"] || "",
+      "الأعضاء": row["الأعضاء"] || "",
+      "الأمر الجامعي الخاص بالتوصيات": row["الأمر الجامعي الخاص بالتوصيات"] || "",
+      "التوصيات": row["التوصيات"] || "",
+      "حالة اللجنة": row["حالة اللجنة"] || "",
+      "العقوبات": row["العقوبات"] || "",
+      "مكان الحفظ": row["مكان الحفظ"] || "",
+      "السنة": row["السنة"] || ""
+    }));
+
+    localStorage.setItem('committeeData', JSON.stringify(formattedData));
+    renderTable(formattedData);
+    alert("تم استيراد البيانات بنجاح!");
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+  function importExcel() {
+  const fileInput = document.getElementById('excelFile');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  document.getElementById('loadingSpinner').style.display = 'block'; // إظهار العداد
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    const savedData = JSON.parse(localStorage.getItem('committeeData')) || [];
+    const newData = jsonData.map((item, i) => ({
+      "ت": savedData.length + i + 1,
+      "نوع اللجنة": item["نوع اللجنة"] || "",
+      "موضوع اللجنة": item["موضوع اللجنة"] || "",
+      "الأمر الجامعي الخاص بالتشكيل": item["الأمر الجامعي الخاص بالتشكيل"] || "",
+      "الأعضاء": item["الأعضاء"] || "",
+      "الأمر الجامعي الخاص بالتوصيات": item["الأمر الجامعي الخاص بالتوصيات"] || "",
+      "التوصيات": item["التوصيات"] || "",
+      "حالة اللجنة": item["حالة اللجنة"] || "",
+      "العقوبات": item["العقوبات"] || "",
+      "مكان الحفظ": item["مكان الحفظ"] || "",
+      "السنة": item["السنة"] || ""
+    }));
+
+    const allData = savedData.concat(newData);
+    localStorage.setItem('committeeData', JSON.stringify(allData));
+    renderTable(allData);
+
+    document.getElementById('loadingSpinner').style.display = 'none'; // إخفاء العداد
+  };
+  reader.readAsArrayBuffer(file);
+}
+  </script>
+
 </body>
 </html>

@@ -83,7 +83,7 @@
     }
 
     .تدقيقية {
-      background-color: #d1ecf1 !important;
+      background-color: #d1ecf1 !important; /* الأزرق الفاتح */
     }
 
     .أخرى {
@@ -150,7 +150,7 @@
     function getTypeClass(type) {
       if (!type) return "أخرى";
       if (type.includes("تحقيقية")) return "تحقيقية";
-      if (type.includes("تدقيقية")) return "تدقيقية";
+      if (type.includes("تدقيقية")) return "تدقيقية"; // كود لتمييز النوع الأزرق الفاتح
       return "أخرى";
     }
 

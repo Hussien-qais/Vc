@@ -1,70 +1,99 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لجان سنة 2020</title>
+  <title>بحث اللجان</title>
   <style>
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      direction: rtl;
-      font-family: 'Cairo', sans-serif;
+    body {
+      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
     }
-
-    th, td {
-      border: 1px solid #999;
-      padding: 8px;
+    .search-container {
+      margin-top: 15vh;
+    }
+    .search-box {
+      width: 50%;
+      max-width: 600px;
+      padding: 15px 20px;
+      font-size: 18px;
+      border: 1px solid #dcdcdc;
+      border-radius: 30px;
+      box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+      outline: none;
+      transition: box-shadow 0.2s;
+    }
+    .search-box:focus {
+      box-shadow: 0 1px 8px rgba(32, 33, 36, 0.4);
+    }
+    .results {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .result-card {
+      width: 90%;
+      max-width: 800px;
+      background: white;
       text-align: right;
+      padding: 15px 20px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-
-    th {
-      background-color: #004080;
-      color: white;
+    .result-card h3 {
+      margin: 0 0 5px;
+      font-size: 18px;
+      color: #1a0dab;
     }
-
-    caption {
-      font-weight: bold;
-      margin-bottom: 10px;
+    .result-card p {
+      margin: 0;
+      color: #4d5156;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 
-  <table>
-    <caption>لجان سنة 2020</caption>
-    <thead>
-      <tr>
-        <th>رقم اللجنة</th>
-        <th>اسم اللجنة</th>
-        <th>تاريخ التشكيل</th>
-        <th>رقم الأمر</th>
-        <th>التوصيات</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>لجنة تطوير التعليم</td>
-        <td>2020-01-05</td>
-        <td>أمر 100</td>
-        <td>رفع توصيات بإصلاح المناهج</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>لجنة مكافحة الفساد</td>
-        <td>2020-03-12</td>
-        <td>أمر 153</td>
-        <td>متابعة ملفات الفساد المالي</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>لجنة الطاقة المتجددة</td>
-        <td>2020-07-20</td>
-        <td>أمر 207</td>
-        <td>تقديم خطة وطنية للطاقة الشمسية</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="search-container">
+    <input type="text" id="searchInput" class="search-box" placeholder="ابحث عن موضوع أو عضو أو توصية..." onkeyup="searchData()">
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    const allData = JSON.parse(localStorage.getItem("committeeData")) || [];
+
+    function searchData() {
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+
+      const filtered = allData.filter(row => {
+        const rowText = Object.values(row).join(" ").toLowerCase();
+        return rowText.includes(keyword);
+      });
+
+      if (keyword.trim() === "") return;
+
+      filtered.forEach((item, index) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+
+        card.innerHTML = `
+          <h3>نوع اللجنة: ${item["نوع اللجنة"] || "غير معروف"}</h3>
+          <p><strong>الموضوع:</strong> ${item["موضوع اللجنة"]}</p>
+          <p><strong>الأعضاء:</strong> ${item["الأعضاء"]}</p>
+          <p><strong>السنة:</strong> ${item["السنة"]} | <strong>الحالة:</strong> ${item["حالة اللجنة"]}</p>
+        `;
+
+        resultsDiv.appendChild(card);
+      });
+    }
+  </script>
 
 </body>
 </html>

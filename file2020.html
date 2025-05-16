@@ -123,107 +123,139 @@
   <div id="counter"></div>
   <div id="results"></div>
 
-  <script>
-    const data = JSON.parse(localStorage.getItem("committeeData")) || [];
+    <script>
+  const rawData = [
+    // الصق هنا محتوى JSON
+  ];
 
-    function populateFilters() {
-      const years = [...new Set(data.map(item => item["السنة"]).filter(Boolean))].sort();
-      const types = [...new Set(data.map(item => item["نوع اللجنة"]).filter(Boolean))].sort();
+  // استخراج السنة من "الأمر الجامعي الخاص بالتوصيات"
+  const data = rawData.map(item => {
+    const match = item["الأمر الجامعي الخاص بالتوصيات"]?.match(/\b(20\d{2})\b/);
+    const year = match ? match[1] : "";
+    return { ...item, "السنة": year };
+  });
 
-      const yearSelect = document.getElementById("yearFilter");
-      years.forEach(y => {
-        const opt = document.createElement("option");
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
-      });
+  // إزالة التكرارات مع الاحتفاظ بمن لديه توصيات
+  const uniqueData = [];
+  const seen = new Set();
 
-      const typeSelect = document.getElementById("typeFilter");
-      types.forEach(t => {
-        const opt = document.createElement("option");
-        opt.value = t;
-        opt.textContent = t;
-        typeSelect.appendChild(opt);
-      });
+  data.forEach(item => {
+    const key = [item["موضوع اللجنة"], item["الأمر الجامعي الخاص بالتشكيل"], item["الأعضاء"]].join("|");
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueData.push(item);
+    } else {
+      // إذا وُجد عنصر سابق بنفس المفتاح بدون توصيات وهذا فيه توصيات، استبدله
+      const index = uniqueData.findIndex(existing =>
+        existing["موضوع اللجنة"] === item["موضوع اللجنة"] &&
+        existing["الأمر الجامعي الخاص بالتشكيل"] === item["الأمر الجامعي الخاص بالتشكيل"] &&
+        existing["الأعضاء"] === item["الأعضاء"]
+      );
+      if (index !== -1 && !uniqueData[index]["الأمر الجامعي الخاص بالتوصيات"] && item["الأمر الجامعي الخاص بالتوصيات"]) {
+        uniqueData[index] = item;
+      }
+    }
+  });
+
+  // استخدام البيانات المفلترة في البحث
+  const filteredData = uniqueData;
+
+  function populateFilters() {
+    const years = [...new Set(filteredData.map(item => item["السنة"]).filter(Boolean))].sort();
+    const types = [...new Set(filteredData.map(item => item["نوع اللجنة"]).filter(Boolean))].sort();
+
+    const yearSelect = document.getElementById("yearFilter");
+    years.forEach(y => {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      yearSelect.appendChild(opt);
+    });
+
+    const typeSelect = document.getElementById("typeFilter");
+    types.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      typeSelect.appendChild(opt);
+    });
+  }
+
+  function getTypeClass(type) {
+    if (!type) return "أخرى";
+    if (type.includes("تحقيقية")) return "تحقيقية";
+    if (type.includes("تدقيقية")) return "تدقيقية";
+    return "أخرى";
+  }
+
+  function searchData() {
+    const keyword = document.getElementById("searchInput").value.toLowerCase();
+    const year = document.getElementById("yearFilter").value;
+    const type = document.getElementById("typeFilter").value;
+    const results = document.getElementById("results");
+    const counter = document.getElementById("counter");
+    results.innerHTML = "";
+    counter.textContent = "";
+
+    if (!keyword && !year && !type) return;
+
+    const filtered = filteredData.filter(row => {
+      const text = Object.values(row).join(" ").toLowerCase();
+      const matchesKeyword = !keyword || text.includes(keyword);
+      const matchesYear = !year || row["السنة"] === year;
+      const matchesType = !type || row["نوع اللجنة"] === type;
+      return matchesKeyword && matchesYear && matchesType;
+    });
+
+    if (filtered.length === 0) {
+      results.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة.</div>';
+      return;
     }
 
-    function getTypeClass(type) {
-      if (!type) return "أخرى";
-      if (type.includes("تحقيقية")) return "تحقيقية";
-      if (type.includes("تدقيقية")) return "تدقيقية"; // كود لتمييز النوع الأزرق الفاتح
-      return "أخرى";
-    }
+    counter.textContent = `عدد النتائج: ${filtered.length}`;
 
-    function searchData() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      const year = document.getElementById("yearFilter").value;
-      const type = document.getElementById("typeFilter").value;
-      const results = document.getElementById("results");
-      const counter = document.getElementById("counter");
-      results.innerHTML = "";
-      counter.textContent = "";
-
-      if (!keyword && !year && !type) {
-        return;
-      }
-
-      const filtered = data.filter(row => {
-        const text = Object.values(row).join(" ").toLowerCase();
-        const matchesKeyword = !keyword || text.includes(keyword);
-        const matchesYear = !year || row["السنة"] === year;
-        const matchesType = !type || row["نوع اللجنة"] === type;
-        return matchesKeyword && matchesYear && matchesType;
-      });
-
-      if (filtered.length === 0) {
-        results.innerHTML = '<div class="no-results">لا توجد نتائج مطابقة.</div>';
-        return;
-      }
-
-      counter.textContent = `عدد النتائج: ${filtered.length}`;
-
-      let html = `
-        <table>
-          <caption>نتائج البحث</caption>
-          <thead>
-            <tr>
-              <th>نوع اللجنة</th>
-              <th>موضوع اللجنة</th>
-              <th>الأمر الجامعي للتشكيل</th>
-              <th>الأعضاء</th>
-              <th>الأمر الجامعي للتوصيات</th>
-              <th>التوصيات</th>
-              <th>العقوبات</th>
-              <th>مكان الحفظ</th>
-              <th>السنة</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-
-      filtered.forEach(row => {
-        const typeClass = getTypeClass(row["نوع اللجنة"]);
-        html += `
+    let html = `
+      <table>
+        <caption>نتائج البحث</caption>
+        <thead>
           <tr>
-            <td class="${typeClass}">${row["نوع اللجنة"] || ""}</td>
-            <td>${row["موضوع اللجنة"] || ""}</td>
-            <td>${row["الأمر الجامعي الخاص بالتشكيل"] || ""}</td>
-            <td>${row["الأعضاء"] || ""}</td>
-            <td>${row["الأمر الجامعي الخاص بالتوصيات"] || ""}</td>
-            <td>${row["التوصيات"] || ""}</td>
-            <td>${row["العقوبات"] || ""}</td>
-            <td>${row["مكان الحفظ"] || ""}</td>
-            <td>${row["السنة"] || ""}</td>
+            <th>نوع اللجنة</th>
+            <th>موضوع اللجنة</th>
+            <th>الأمر الجامعي للتشكيل</th>
+            <th>الأعضاء</th>
+            <th>الأمر الجامعي للتوصيات</th>
+            <th>التوصيات</th>
+            <th>العقوبات</th>
+            <th>مكان الحفظ</th>
+            <th>السنة</th>
           </tr>
-        `;
-      });
+        </thead>
+        <tbody>
+    `;
 
-      html += "</tbody></table>";
-      results.innerHTML = html;
-    }
+    filtered.forEach(row => {
+      const typeClass = getTypeClass(row["نوع اللجنة"]);
+      html += `
+        <tr>
+          <td class="${typeClass}">${row["نوع اللجنة"] || ""}</td>
+          <td>${row["موضوع اللجنة"] || ""}</td>
+          <td>${row["الأمر الجامعي الخاص بالتشكيل"] || ""}</td>
+          <td>${row["الأعضاء"] || ""}</td>
+          <td>${row["الأمر الجامعي الخاص بالتوصيات"] || ""}</td>
+          <td>${row["التوصيات"] || ""}</td>
+          <td>${row["العقوبات"] || ""}</td>
+          <td>${row["مكان الحفظ"] || ""}</td>
+          <td>${row["السنة"] || ""}</td>
+        </tr>
+      `;
+    });
 
-    populateFilters();
-  </script>
+    html += "</tbody></table>";
+    results.innerHTML = html;
+  }
 
+  populateFilters();
+</script>
 </body>
 </html>
